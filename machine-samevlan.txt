@@ -1,0 +1,35 @@
+#!/bin/bash
+
+function convip()
+{
+    CONV=({0..1}{0..1}{0..1}{0..1}{0..1}{0..1}{0..1}{0..1})
+
+    ip=""
+    for byte in `echo ${1} | tr "." " "`; do
+        ip="${ip}.${CONV[${byte}]}"
+    done
+    echo ${ip:1}
+}
+
+masterip=172.31.44.14
+#master=$(ping -q -c1 -t1 master.ust.com | grep -Eo "([0-9]+\.?){4}")
+result=$(ip -o -f inet addr show | awk '/scope global/ {print $4}')
+firstip=$(ipcalc -n  $result | cut -f2 -d=)
+lastip=$(ipcalc -b  $result | cut -f2 -d=)
+netmask=$(ipcalc -m  $result | cut -f2 -d=)
+echo current iprange $firstip to $lastip with netmask $netmask
+
+a=`convip "${firstip}"`
+b=`convip "${masterip}"`
+c=`convip "${netmask}"`
+mask=`echo $c | grep -o 1 | wc -l`
+
+
+ip1=$(echo $a | sed 's/\.//g' | awk '{print substr($0,0,'$mask')}' )
+ip2=$(echo $b | sed 's/\.//g' | awk '{print substr($0,0,'$mask')}' )
+if [ $ip1 == $ip2 ]; then
+echo master and agent machine in samenetwork we can uncomment the below line in script in live enviornmnet;
+#'wget -O - -q --no-check-certificate --secure-protocol=TLSv1 https://<PUPPETMASTER>:8140/packages/current/install.bash | sudo bash'
+else
+echo another network
+fi
